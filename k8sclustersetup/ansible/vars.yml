@@ -1,0 +1,11 @@
+# Replace SAN variable from terraform output 
+ucp_ver: 3.3.0
+dtr_ver: 2.8.0
+kubectl_ver: v1.18.0
+san: ucp.niraj.dockerps.io
+dtr_external_url: https://dtr.niraj.dockerps.io
+admin_passwd: Password123
+ca-file: /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/fullchain.pem
+cert-file: /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/cert.pem
+key-file: /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/privkey.pem
+license-file: /Users/nirajbhatt/Downloads/dockereelicense.lic

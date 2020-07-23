@@ -1,0 +1,11 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: micro-git
+spec:
+  type: git
+  params:
+    - name: revision
+      value: master
+    - name: url
+      value: https://github.com/nirajrules/meetupmicroservices #configure: change if you want to build something else, perhaps from your own local git repository.

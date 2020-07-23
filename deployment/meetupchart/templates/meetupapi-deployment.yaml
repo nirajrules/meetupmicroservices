@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}api-deployment
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 2 # replicaset
+  selector:
+    matchLabels:
+      app: meetupapiservice # there will always be two pods running matching this label
+  template: #pod template
+    metadata:
+      labels:
+        app: meetupapiservice # pod label
+    spec:
+      containers:
+        - name: meetupapiservice
+          image: {{ .Values.meetupapi.container.image }}
+          resources:  
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /api/status
+            initialDelaySeconds: 3 #Default 0
+            periodSeconds: 5 #Default 10
+            failureThreshold: 3 #Default 3
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /api/status
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          ports:
+            - containerPort: 80

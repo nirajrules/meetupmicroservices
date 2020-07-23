@@ -1,0 +1,43 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: meetupextensions-pipeline
+spec:
+  resources:
+    - name: source-repo
+      type: git
+    - name: web-image
+      type: image
+    - name: ui-image
+      type: image
+  tasks:
+    - name: build-meetupui
+      taskRef:
+        name: build-docker-image-from-git-source
+      params:
+        - name: pathToDockerFile
+          value: $(resources.inputs.docker-source.path)/src/MeetupUI/Dockerfile
+        - name: pathToContext
+          value: $(resources.inputs.docker-source.path)/src #configure: may change according to your source
+      resources:
+        inputs:
+          - name: docker-source
+            resource: source-repo
+        outputs:
+          - name: builtImage
+            resource: web-image
+    - name: build-meetupapi
+      taskRef:
+        name: build-docker-image-from-git-source
+      params:
+        - name: pathToDockerFile
+          value: $(resources.inputs.docker-source.path)/src/MeetupAPIService/Dockerfile
+        - name: pathToContext
+          value: $(resources.inputs.docker-source.path)/src #configure: may change according to your source
+      resources:
+        inputs:
+          - name: docker-source
+            resource: source-repo
+        outputs:
+          - name: builtImage
+            resource: ui-image

@@ -1,0 +1,28 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: github-template
+spec:
+  params:
+    - name: gitrevision
+    - name: gitrepositoryurl
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1alpha1
+      kind: PipelineRun
+      metadata:
+        generateName: meetup-build-
+      spec:
+        serviceAccountName: meetup-serviceaccount
+        pipelineRef:
+          name: meetupextensions-pipeline
+        resources:
+        - name: source-repo
+          resourceRef:
+            name: micro-git
+        - name: web-image
+          resourceRef:
+            name: micro-image-meetupui
+        - name: ui-image
+          resourceRef:
+            name: micro-image-meetupapi

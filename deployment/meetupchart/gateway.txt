@@ -1,0 +1,19 @@
+#An ingress Gateway describes a load balancer operating at the edge of the mesh that receives incoming HTTP/TCP connections. It configures exposed ports, protocols, etc.
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: {{ .Release.Name }}-gateway
+spec:
+  selector:
+    istio: ingressgateway #use Istio default gateway implementation
+  servers:
+    - port:
+        number: 443
+        name: https-meetup
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: telemetry-gw-cert
+      hosts:
+        - {{ .Values.meetupui.gateway.host }}

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meetupapiservice
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 2 # replicaset
+  selector:
+    matchLabels:
+      app: meetupapiservice # there will always be two pods running matching this label
+  template: #pod template
+    metadata:
+      labels:
+        app: meetupapiservice # pod label
+    spec:
+      containers:
+        - name: meetupapiservice
+          image: nirajdock/meetupapiservice
+          resources:  
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /api/status
+            initialDelaySeconds: 3 #Default 0
+            periodSeconds: 5 #Default 10
+            failureThreshold: 3 #Default 3
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /api/status
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef: #config map can be attached as volumes too just that env variables are easy to access
+                name: meetupuiconfig
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: meetupapiservice
+spec:
+  type: ClusterIP
+  selector:
+    app: meetupapiservice
+  ports:
+    - port: 80 #ClusterIP Port
+      targetPort: 80

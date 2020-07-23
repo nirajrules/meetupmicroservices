@@ -1,0 +1,25 @@
+all:
+  vars:
+    ansible_ssh_private_key_file: ${key_path}
+    ansible_ssh_user: ${ssh_user}
+  children:
+    leader:
+      hosts:
+        ${k8s_leader}
+    managers:
+      hosts:
+        ${k8s_managers}
+    linuxworkers:
+      children: 
+        dtrprimary:
+          hosts:
+            ${k8s_dtrprimary}
+        dtrsecondary:
+          hosts:
+            ${k8s_dtrsecondary}
+        workers: 
+          hosts:
+            ${k8s_workers}
+    windowsworkers:
+      hosts:
+        ${k8s_windowsworkers}

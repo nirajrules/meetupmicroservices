@@ -1,0 +1,5 @@
+cluster_name = "niraj-ucp-cluster"
+master_count = 1
+worker_count = 2
+windows_worker_count = 2
+admin_password = "orcaorcaorca"

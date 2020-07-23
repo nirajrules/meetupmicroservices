@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: meetup-pipeline-run-
+spec:
+  serviceAccountName: meetup-serviceaccount
+  pipelineRef:
+    name: meetupextensions-pipeline
+  resources:
+    - name: source-repo
+      resourceRef:
+        name: micro-git
+    - name: web-image
+      resourceRef:
+        name: micro-image-meetupui
+    - name: ui-image
+      resourceRef:
+        name: micro-image-meetupapi

@@ -1,0 +1,17 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: tekton-eventlistener-vs
+  namespace: tekton-pipelines
+spec:
+  hosts:
+  - "eventlistener.niraj.dockerps.io"
+  gateways: 
+  - istio-system/dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: el-github-listener-interceptor.tekton-pipelines.svc.cluster.local
+        port:
+          number: 8080

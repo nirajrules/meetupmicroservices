@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meetupuiconfig
+data:
+  API_URL: http://meetupapiservice.default.svc.cluster.local/api/meetupapi
+  MEETUP_RSVP_MEMBERONLY_URL: https://api.meetup.com/{0}/events/{1}/rsvps?&only=member
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meetupui
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 2 # replicaset
+  selector:
+    matchLabels:
+      app: meetupui # there will always be two pods running matching this label
+  template: #pod template
+    metadata:
+      labels:
+        app: meetupui # pod label
+    spec:
+      containers:
+        - name: meetupui
+          image: nirajdock/meetupui
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /status.html
+            initialDelaySeconds: 3 #Default 0
+            periodSeconds: 5 #Default 10
+            failureThreshold: 3 #Default 3
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /status.html
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef: #config map can be attached as volumes too just that env variables are easy to access
+                name: meetupuiconfig
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meetupui
+spec:
+  type: NodePort
+  selector:
+    app: meetupui
+  ports:
+    - port: 80 #ClusterIP Port
+      targetPort: 80

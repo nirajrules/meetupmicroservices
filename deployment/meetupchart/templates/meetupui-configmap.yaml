@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}ui-configmap
+data:
+  API_URL: http://{{ .Release.Name }}api-service.default.svc.cluster.local/api/meetupapi
+  MEETUP_RSVP_MEMBERONLY_URL: {{ .Values.meetupui.configMapData.MEETUP_RSVP_MEMBERONLY_URL }}

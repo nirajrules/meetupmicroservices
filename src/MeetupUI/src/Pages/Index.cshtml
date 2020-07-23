@@ -1,0 +1,44 @@
+﻿@page
+@model meetupraffle.Pages.IndexModel 
+@{
+    ViewData["Title"] = "Let's Raffle";
+}
+
+<h1 class="h2">Winners Take It All!!!</h1>
+
+<p>Enter the Meetup Group and Event details below to Fetch RSVPs and select a random winner. For instance if your event URL is - https://www.meetup.com/Charlotte-Microsoft-Azure1/events/qlmdrqybckbcb/ the group name is Charlotte-Microsoft-Azure1 and event ID is qlmdrqybckbcb. For any issues drop a note to nirajbhatt@outlook.com</p>
+
+<form method="post">
+    <div class="form-group">
+        <label asp-for="GroupName" class="control-label">Meetup GroupName</label>
+        <input asp-for="GroupName" class="form-control" value="@Model.GroupName" />
+        <span asp-validation-for="GroupName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="EventID" class="control-label">Meetup EventID</label>
+        <input asp-for="EventID" class="form-control" value="@Model.EventID" />
+        <span asp-validation-for="EventID" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Fetch RSVPs" class="btn btn-primary" asp-page-handler="FetchRSVPs" />
+        <input type="submit" value="Pick A Winner" class="btn btn-primary" asp-page-handler="PickWinner" />
+        <label for="Winner.Name" class="control-label">@Model.Winner.Name</label>
+        <img class="esh-catalog-thumbnail" src="@Model.Winner.PictureUri" />
+    </div>
+    @if (Model.RSVPs.Count() > 0)
+    {
+    <div class="esh-catalog-items row">
+        @for (int i = 0; i < Model.RSVPs.Count(); ++i)
+            {
+                <div class="esh-catalog-item col-md-4">
+                    <img class="esh-catalog-thumbnail" name="RSVPs[@i].PictureUri" src="@Model.RSVPs[i].PictureUri" />
+                    <div class="esh-catalog-name">
+                        <span>@Model.RSVPs[i].Name</span>
+                    </div>              
+                    <input type="hidden" name="RSVPs[@i].PictureUri" value="@Model.RSVPs[i].PictureUri" />
+                    <input type="hidden" name="RSVPs[@i].Name" value="@Model.RSVPs[i].Name" />
+                </div>
+            }
+    </div>
+    }
+</form>

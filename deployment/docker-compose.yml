@@ -1,0 +1,17 @@
+# For Local Development you can also use docker-compose
+# Sequence of commands => docker-compose build; docker-compose up -d; docker-compose down
+# To run below define an environment variable DOCKER_REGISTRY (export DOCKER_REGISTRY=docker.io/nirajdock)
+
+version: '3.4'
+
+services:
+  meetupui:
+    image: ${DOCKER_REGISTRY}-meetupui
+    build:
+      context: .
+      dockerfile: ../src/MeetupUI/Dockerfile
+  meetupapiservice:
+    image: ${DOCKER_REGISTRY}-meetupapiservice
+    build:
+      context: .
+      dockerfile: ../src/MeetupAPIService/Dockerfile

@@ -1,0 +1,31 @@
+all:
+  vars:
+    ansible_ssh_private_key_file: ../terraform/ssh_keys/nirajdemo.pem
+    ansible_ssh_user: ec2-user
+  children:
+    linux:
+      children: 
+        leader:
+          hosts:
+            34.202.161.141:
+        managers:
+          hosts:
+            3.81.103.237:
+            34.207.115.207:
+        linuxworkers:
+          children: 
+            dtrprimary:
+              hosts:
+                54.87.43.108:
+            dtrsecondary:
+              hosts:
+                54.210.231.105:
+                34.229.75.70:
+            workers: 
+              hosts:
+                18.232.95.27:
+                34.229.128.172:
+    windowsworkers:
+      hosts:
+        3.82.38.222:
+        3.85.7.185:

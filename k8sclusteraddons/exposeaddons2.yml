@@ -1,0 +1,237 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: dockerps-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https-dockerps
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: telemetry-gw-cert
+    hosts:
+    - "*.niraj.dockerps.io"
+  - port:
+      number: 80
+      name: http-dockerps
+      protocol: HTTP
+    hosts:
+    - "*.niraj.dockerps.io"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: grafana-vs
+  namespace: istio-system
+spec:
+  hosts:
+  - "grafana.niraj.dockerps.io"
+  gateways:
+  - dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: grafana
+        port:
+          number: 3000
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kiali-vs
+  namespace: istio-system
+spec:
+  hosts:
+  - "kiali.niraj.dockerps.io"
+  gateways:
+  - dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: kiali
+        port:
+          number: 20001
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: prometheus-vs
+  namespace: istio-system
+spec:
+  hosts:
+  - "prometheus.niraj.dockerps.io"
+  gateways:
+  - dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: prometheus
+        port:
+          number: 9090
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: tracing-vs
+  namespace: istio-system
+spec:
+  hosts:
+  - "tracing.niraj.dockerps.io"
+  gateways:
+  - dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: tracing
+        port:
+          number: 80
+---
+# apiVersion: networking.istio.io/v1alpha3
+# kind: Gateway
+# metadata:
+#   name: logging-gateway
+#   namespace: logging
+# spec:
+#   selector:
+#     istio: ingressgateway
+#   servers:
+#   - port:
+#       number: 443
+#       name: https-logging
+#       protocol: HTTPS
+#     tls:
+#       mode: SIMPLE
+#       credentialName: telemetry-gw-cert
+#     hosts:
+#     - "kibana.niraj.dockerps.io"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kibana-vs
+  namespace: logging
+spec:
+  hosts:
+  - "kibana.niraj.dockerps.io"
+  gateways: 
+  - istio-system/dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: kibana-kibana.logging.svc.cluster.local
+        port:
+          number: 5601
+---
+# apiVersion: networking.istio.io/v1alpha3
+# kind: VirtualService
+# metadata:
+#   name: elasticsearch-vs
+#   namespace: logging
+# spec:
+#   hosts:
+#   - "elasticsearch.niraj.dockerps.io"
+#   gateways: 
+#   - dockerps-gateway
+#   http:
+#   - route:
+#     - destination:
+#         host: elasticsearch-master.logging.svc.cluster.local
+#         port:
+#           number: 9200
+---
+# apiVersion: networking.istio.io/v1alpha3
+# kind: Gateway
+# metadata:
+#   name: tekton-gateway
+#   namespace: tekton-pipelines
+# spec:
+#   selector:
+#     istio: ingressgateway
+#   servers:
+#   - port:
+#       number: 443
+#       name: https-tekton
+#       protocol: HTTPS
+#     tls:
+#       mode: SIMPLE
+#       credentialName: telemetry-gw-cert
+#     hosts:
+#     - "tekton.niraj.dockerps.io"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: tekton-vs
+  namespace: tekton-pipelines
+spec:
+  hosts:
+  - "tekton.niraj.dockerps.io"
+  gateways: 
+  - istio-system/dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: tekton-dashboard.tekton-pipelines.svc.cluster.local
+        port:
+          number: 9097
+---
+# apiVersion: networking.istio.io/v1alpha3
+# kind: Gateway
+# metadata:
+#   name: argocd-gateway
+#   namespace: istio-system
+# spec:
+#   selector:
+#     istio: ingressgateway
+#   servers:
+#   - port:
+#       number: 80
+#       name: http-argocd
+#       protocol: HTTP
+#     hosts:
+#     - "argo.niraj.dockerps.io"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: argocd-vs
+  namespace: argocd
+spec:
+  hosts:
+  - "argo.niraj.dockerps.io"
+  gateways: 
+  - istio-system/dockerps-gateway
+  http:
+  - route:
+    - destination:
+        host: argocd-server.argocd.svc.cluster.local
+        port:
+          number: 80
+# ---
+# apiVersion: networking.istio.io/v1alpha3
+# kind: DestinationRule
+# metadata:
+#   name: kibana
+#   namespace: istio-system
+# spec:
+#   host: kibana-kibana.logging.svc
+#   trafficPolicy:
+#     tls:
+#       mode: DISABLE
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: argocd-server-dtrl
+  namespace: argocd
+spec:
+  host: argocd-server.argocd.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE

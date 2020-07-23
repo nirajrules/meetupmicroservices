@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Meetup Extensions</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <link href="~/css/bootstrap.css" rel="stylesheet">
+    <link href="~/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    
+  <!-- Custom styles for this template-->
+  <link href="~/css/sb-admin-2.min.css" rel="stylesheet">
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @@media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      } 
+    </style>
+</head>
+<body>
+    <header>
+        @* <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-page="/Index">Raffle</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav> *@
+        <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+  <a class="navbar-brand col-md-3 col-lg-2 mr-0 px-3" href="#">Meetup Extensions</a>
+  <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-toggle="collapse" data-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  @* <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search"> *@
+  <ul class="navbar-nav px-3">
+    <li class="nav-item text-nowrap">
+      <a class="nav-link" href="#">Sign out</a>
+    </li>
+  </ul>
+</nav>
+    </header>
+    <div class="container-fluid">
+  <div class="row">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <div class="sidebar-sticky pt-3">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <span data-feather="home"></span>
+              Dashboard <span class="sr-only">(current)</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <span data-feather="file"></span>
+              Attendance
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="#">
+              <span data-feather="shopping-cart"></span>
+              Raffle
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <span data-feather="users"></span>
+              AI Catering
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <span data-feather="bar-chart-2"></span>
+              Reports
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">
+              <span data-feather="layers"></span>
+              Contact Us
+            </a>
+          </li>
+        </ul>
+
+        
+        </ul>
+      </div>
+    </nav>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+      @* <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"> *@
+        @* <h1 class="h2">Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+          <div class="btn-group mr-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+            <span data-feather="calendar"></span>
+            This week
+          </button>
+        </div> *@
+        @RenderBody()
+      </div>
+    </main>
+    @* <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div> *@
+
+    @* <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2020 - Meetup Raffle - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        </div>
+    </footer> *@
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/bootstrap.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="../assets/js/vendor/jquery.slim.min.js"><\/script>')</script>
+    <script src="~/js/bootstrap.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.9.0/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
+    <script src="~/js/dashboard.js"></script></body>
+    @RenderSection("Scripts", required: false)
+@* </body>
+</html> *@

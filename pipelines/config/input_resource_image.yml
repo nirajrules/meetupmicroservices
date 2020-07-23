@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: micro-image-meetupui
+spec:
+  type: image
+  params:
+    - name: url
+      value: index.docker.io/nirajdock/meetupui #configure: replace with where the image should go: perhaps your local registry or Dockerhub with a secret and configured service account
+
+---
+
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: micro-image-meetupapi
+spec:
+  type: image
+  params:
+    - name: url
+      value: index.docker.io/nirajdock/meetupapiservice #configure: replace with where the image should go: perhaps your local registry or Dockerhub with a secret and configured service account

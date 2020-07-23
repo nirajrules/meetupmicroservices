@@ -1,0 +1,405 @@
+# Start at Task => ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -v -i inventory.yml dte_ucp_master_install.yaml --extra-vars "@vars.yml" --start-at-task="Is Node is currently part of Swarm"
+# Single Task => ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -v -i inventory.yml docker_enterprise_install.yaml --extra-vars "@vars.yml" --tags "packages"
+
+- name: Install Docker Packages
+  hosts: linux
+  become: yes
+  #remote_user: "{{ vm_username }}"
+  gather_facts: no
+
+  vars:
+    ucp_ver: "{{ ucp_ver }}"
+    ucp_tar_file: ucp_images_{{ ucp_ver }}.tar.gz
+    dest_dir: /tmp/
+    binary_path: /usr/local/bin/
+
+    docker_engine_url_lts: https://storebits.docker.com/ee/m/sub-8f60cc34-54a2-4dd0-b2be-9f600a841939/rhel/8/x86_64/stable/Packages/docker-ee-19.03.8-3.el8.x86_64.rpm
+    docker_cli_url_lts: https://storebits.docker.com/ee/m/sub-8f60cc34-54a2-4dd0-b2be-9f600a841939/rhel/8/x86_64/stable/Packages/docker-ee-cli-19.03.8-3.el8.x86_64.rpm
+    containerd_url_lts: https://storebits.docker.com/ee/m/sub-8f60cc34-54a2-4dd0-b2be-9f600a841939/rhel/8/x86_64/stable/Packages/containerd.io-1.3.4-3.1.el8.x86_64.rpm
+
+    ucp_tar_url: https://packages.docker.com/caas/ucp_images_{{ ucp_ver }}.tar.gz
+
+  tasks:
+    - name: Check if FIPS is enabled
+      command: cat /proc/sys/crypto/fips_enabled
+      register: fips_check
+      changed_when: False
+      failed_when: False
+      check_mode: no
+
+    - name: Install Docker packages
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - "{{ docker_cli_url_lts }}"
+          - "{{ docker_engine_url_lts }}"
+          - "{{ containerd_url_lts }}"
+          - jq
+          - socat
+          - unzip
+
+    - name: Download UCP tar file
+      get_url:
+        url: "{{ ucp_tar_url }}"
+        dest: "{{ dest_dir }}"
+        mode: "0740"
+        timeout: 330
+
+    - name: Ensures /etc/docker dir exists if not create it
+      file: path=/etc/docker state=directory
+
+    - name: Create daemon.json file for log rotation.
+      copy:
+        dest: "/etc/docker/daemon.json"
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "50m",    
+              "max-file": "1"    
+            }
+          } 
+
+    - name: Start service docker, if not started
+      service:
+        name: docker
+        state: started
+
+    - name: Enable service docker, and not touch the state
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Load UCP image from tar file
+      shell: "docker load < {{ dest_dir }}{{ ucp_tar_file }}"
+
+    - name: Remove ucp tar file from the server
+      file:
+        path: "{{ dest_dir }}/{{ ucp_tar_file }}"
+        state: absent
+
+    - name: Make ssh-user part of docker group
+      shell: |
+        usermod -aG docker {{ ansible_ssh_user }}
+
+- name: Install UCP Master
+  hosts: leader
+  become: yes
+  
+  #remote_user: "{{ vm_username }}"
+  vars:
+    binary_path: /usr/local/bin/
+    kubectl: https://storage.googleapis.com/kubernetes-release/release/{{ kubectl_ver }}/bin/linux/amd64/kubectl
+    jq: https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+
+  tasks:
+    - name: Is Node is currently part of Swarm
+      shell: |
+        swarmstate=$(docker info | grep Swarm | sed 's/Swarm: //g') && echo $swarmstate
+      register: swarmstate
+
+    - name: Create Docker Volume ucp-controller-server-certs and copy certs
+      shell: |
+        docker volume create ucp-controller-server-certs
+        docker container create --name dummy -v ucp-controller-server-certs:/root hello-world
+        docker cp {{ ca-file }} dummy:/root/ca.pem
+        docker cp {{ cert-file }} dummy:/root/cert.pem
+        docker cp {{ key-file }} dummy:/root/key.pem
+        docker rm dummy
+      register: swarmstate
+
+    - name: Spin up UCP docker container.
+      shell: |
+        docker container run --rm \ 
+        -e UCP_ADMIN_PASSWORD={{ admin_passwd }} \
+        --name ucp \ 
+        -v /var/run/docker.sock:/var/run/docker.sock \ 
+        -v {{ license-file }}:/config/docker_subscription.lic \ 
+        docker/ucp:{{ ucp_ver }} \ 
+        install \
+        --host-address $(hostname -I | awk '{ print $1 }') \
+        --san {{ san }} \
+        --debug 
+      register: join_out
+      when: swarmstate.stdout == "inactive" 
+
+    - name: Print installation log
+      debug: var=join_out.stdout_lines
+
+    - name: Install jq package
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - jq
+          - unzip
+          - socat
+
+    - name: Copy the binary files into the server
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ binary_path }}"
+        owner: root
+        group: root
+        mode: 0755
+      with_items:
+        - "{{ kubectl }}"
+
+    - name: Get Bearer Token from UCP
+      shell: |
+        authtoken=$(curl -sk -d '{"username":"admin","password":"{{ admin_passwd }}"}' https://$(hostname -I | awk '{ print $1 }')/auth/login | jq -r .auth_token) && echo $authtoken
+      register: authtoken
+
+    - debug:
+        var: authtoken
+
+    - set_fact:
+        ns_result: "{{ authtoken.stdout }}"
+
+    - name: Download Client Bundle
+      shell: |
+        curl -k -H  "Authorization: Bearer {{ authtoken.stdout }}" https://$(hostname -I | awk '{ print $1 }')/api/clientbundle -o $HOME/bundle.zip
+
+    - name: Unzip Client Bundle
+      shell: |
+        unzip -d /home/{{ ansible_ssh_user }}/ucp-client-bundle $HOME/bundle.zip
+
+    - name: Delete Client Bundle Zip file
+      file:
+        path: $HOME/bundle.zip
+        state: absent
+
+    - name: Download UCP config file
+      shell: |
+        curl -X GET --insecure https://$(hostname -I | awk '{ print $1 }')/api/ucp/config-toml -H  "accept: application/toml" -H  "Authorization: Bearer {{ authtoken.stdout }}" > ucp-config.toml
+
+    - name: Update MTU for Calico and ipip along with setting cloudprovider as AWS 
+      shell: |
+        sed -i 's/1430/1402/g' ucp-config.toml
+        sed -i 's/cloud_provider = ""/cloud_provider = "aws"/g' ucp-config.toml
+
+    - name: Read the updated mtu before pushing the ucp-config.toml file into UCP.
+      shell: |
+        cat ucp-config.toml | grep mtu
+        cat ucp-config.toml | grep aws
+      register: output
+
+    - debug: msg="{{ output.stdout_lines|list }}"
+
+    - name: Push updated config file into UCP
+      shell: |
+        curl --insecure -X PUT -H "accept: application/toml" -H "Authorization: Bearer {{ authtoken.stdout }}" --upload-file 'ucp-config.toml' https://$(hostname -I | awk '{ print $1 }')/api/ucp/config-toml
+
+    - name: generate join token for manager nodes
+      shell: |
+        joinmanager=$(docker swarm  join-token manager | cut -d$'\n' -f3 | awk '{$1=$1;print}') && echo $joinmanager
+      register: joinmanager
+
+    - set_fact:
+        join_manager: "{{ joinmanager.stdout }}"
+
+    - name: "Add Swarm Join Manager Token Command to a host"
+      add_host:
+        name: "SWARM_MANAGER"
+        token: "{{ joinmanager.stdout }}"
+    
+    - name: generate join token for worker nodes
+      shell: |
+        jointoken=$(docker swarm  join-token worker | cut -d$'\n' -f3 | awk '{$1=$1;print}') && echo $jointoken
+      register: jointoken
+
+    - set_fact:
+        join_token: "{{ jointoken.stdout }}"
+
+    - name: "Add Swarm Join Token Command to a host"
+      add_host:
+        name: "SWARM_TOKEN"
+        token: "{{ jointoken.stdout }}"
+
+- name: Join Master Nodes
+  hosts: managers
+  become: yes
+  #remote_user: "{{ vm_username }}"
+
+  tasks:
+    - name: Is Node is currently part of Swarm
+      shell: |
+        swarmstate=$(docker info | grep Swarm | sed 's/Swarm: //g') && echo $swarmstate
+      register: swarmstate
+
+    - name: add worker node to the cluster
+      shell: |
+        {{ hostvars["SWARM_MANAGER"]["token"] }}
+      when: swarmstate.stdout == "inactive"
+
+- name: Join Worker Nodes
+  hosts: linuxworkers
+  become: yes
+  #remote_user: "{{ vm_username }}"
+
+  tasks:
+    - name: Is Node is currently part of Swarm
+      shell: |
+        swarmstate=$(docker info | grep Swarm | sed 's/Swarm: //g') && echo $swarmstate
+      register: swarmstate
+
+    - name: add worker node to the cluster
+      shell: |
+        {{ hostvars["SWARM_TOKEN"]["token"] }}
+      when: swarmstate.stdout == "inactive"
+
+- name: Install DTR 
+  hosts: dtrprimary
+  become: yes
+  #remote_user: "{{ vm_username }}"
+  vars:
+    dtr_tar_url: https://packages.docker.com/caas/dtr_images_{{ dtr_ver }}.tar.gz
+    dest_dir: /tmp/
+    dtr_tar_file: dtr_images_{{ dtr_ver }}.tar.gz
+
+  tasks:
+    - name: Get hostname
+      shell: echo $HOSTNAME
+      register: result
+
+    - name: Download DTR tar file
+      get_url:
+        url: "{{ dtr_tar_url }}"
+        dest: "{{ dest_dir }}"
+        mode: "0740"
+        timeout: 330
+
+    - name: Load DTR image from tar file
+      shell: "docker load < {{ dest_dir }}{{ dtr_tar_file }}"
+
+    - name: Remove ucp tar file from the server
+      file:
+        path: "{{ dest_dir }}/{{ dtr_tar_file }}"
+        state: absent
+
+    - name: Install Primary DTR Replica
+      shell: |
+        docker run -it --rm docker/dtr:{{ dtr_ver }} install  \
+        --dtr-external-url {{ dtr_external_url }} \
+        --ucp-node {{ result.stdout }}  \
+        --ucp-username admin  \
+        --ucp-password {{ admin_passwd }} \
+        --ucp-url {{ san }} \
+        --dtr-ca {{ ca-file }} \
+        --dtr-cert {{ cert-file }} \
+        --dtr-key {{ key-file }} \
+        --ucp-ca {{ ca-file }} \
+        --debug
+      register: install_out
+#          --http-proxy {{ http_proxy }} \
+#          --https-proxy {{ https_proxy }} \
+      failed_when: false
+
+    - name: Print installation log
+      debug: var=install_out.stdout_lines
+
+    - name: Get replica ID
+      shell: |
+        {% raw %}docker ps --format '{{.Names}}' -f name=dtr-rethink | cut -f 3 -d '-'{% endraw %}
+      register: precheck_replica_id
+
+    - name: "Add Replica ID to the host"
+      add_host:
+        name: "DTR_REPLICAID"
+        replicaId: "{{ precheck_replica_id.stdout_lines[0] }}"
+
+
+- name: Install Docker Trusted Registry Replicas
+  hosts: dtrsecondary
+  become: yes
+  vars:
+    dtr_tar_url: https://packages.docker.com/caas/dtr_images_{{ dtr_ver }}.tar.gz
+    dest_dir: /tmp/
+    dtr_tar_file: dtr_images_{{ dtr_ver }}.tar.gz
+
+  tasks:
+
+    - name: Get hostname
+      shell: echo $HOSTNAME
+      register: secondaryreplicamachinename
+    
+    - name: Download DTR tar file
+      get_url:
+        url: "{{ dtr_tar_url }}"
+        dest: "{{ dest_dir }}"
+        mode: "0740"
+        timeout: 330
+
+    - name: Load DTR image from tar file
+      shell: "docker load < {{ dest_dir }}{{ dtr_tar_file }}"
+
+    - name: Remove ucp tar file from the server
+      file:
+        path: "{{ dest_dir }}/{{ dtr_tar_file }}"
+        state: absent
+      
+    - name: Install DTR Replica
+      shell: |
+          docker run -it --rm docker/dtr:{{ dtr_ver }} join  \
+          --existing-replica-id {{ hostvars["DTR_REPLICAID"]["replicaId"] }} \
+          --ucp-node {{ secondaryreplicamachinename.stdout }}  \
+          --ucp-username admin  \
+          --ucp-password {{ admin_passwd }} \
+          --ucp-url {{ san }} \
+          --dtr-ca {{ ca-file }} \
+          --dtr-cert {{ cert-file }} \
+          --dtr-key {{ key-file }} \
+          --ucp-ca {{ ca-file }} \
+          --debug
+      register: join_out
+      failed_when: false
+        #no_log: true
+
+    - name: Print installation log
+      debug: var=join_out.stdout_lines
+
+    - name: Assert there were no failures
+      assert:
+        that: '"Join is complete" in join_out.stdout'
+
+    # - name: Validate DTR is up and running
+    #   uri:
+    #     url: 'https://{{ ansible_fqdn }}:{{ dtr_https_port }}/_ping'
+    #     validate_certs: no
+    #   register: uri_out
+    #   changed_when: false
+    #   failed_when: uri_out.json["Healthy"] != true
+
+- name: Install Tekton Pipelines, Argo CD, Istio
+  hosts: leader
+  become: yes
+  tags:
+        - packages
+  #remote_user: "{{ vm_username }}"
+
+  tasks:
+
+    - name: Setup Kubectl context & Install Tekton Pipelines
+      shell: |
+        cd /home/{{ ansible_ssh_user }}/ucp-client-bundle
+        eval "$(<env.sh)"
+        /usr/local/bin/kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+
+    - name: Setup Argo CD
+      shell: |
+        cd /home/{{ ansible_ssh_user }}/ucp-client-bundle
+        eval "$(<env.sh)"
+        /usr/local/bin/kubectl create namespace argocd
+        /usr/local/bin/kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+#### DTR Reconfigure ####
+# docker run -it --rm docker/dtr:2.8.0 \                                                                                                                                                                           ─╯
+#     reconfigure \
+#     --dtr-ca "$(cat /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/fullchain.pem)" \
+#     --dtr-cert "$(cat /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/cert.pem)" \
+#     --dtr-key "$(cat /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/privkey.pem)" \
+#     --ucp-url "https://ucp.niraj.dockerps.io" \
+#     --ucp-username admin \
+#     --ucp-password Password123 \
+#     --ucp-ca "$(cat /Users/nirajbhatt/letsencrypt/live/niraj.dockerps.io/fullchain.pem)"

@@ -1,0 +1,25 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  name: create-api-repo-webhook-run
+spec:
+  taskRef:
+    name: create-webhook
+  inputs:
+    params:
+    - name: GitHubOrg
+      value: "nirajrules"
+    - name: GitHubUser
+      value: "nirajrules"
+    - name: GitHubRepo
+      value: "meetupmicroservices"
+    - name: GitHubSecretName
+      value: github-secret
+    - name: GitHubAccessTokenKey
+      value: secretToken
+    - name: GitHubSecretStringKey
+      value: secret
+    - name: ExternalDomain
+      value: https://eventlistener.niraj.dockerps.io
+  timeout: 1000s
+  #serviceAccount: tekton-triggers-github-sa
