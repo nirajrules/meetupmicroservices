@@ -12,6 +12,17 @@ RUN dotnet publish -c Release -o out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+
+ARG BUILD_DATE
+ARG BUILD_VERSION
+
+LABEL org.brkthroo.image.authors="nirajbhatt@outlook.com" \
+      org.brkthroo.image.source="https://github.com/nirajrules" \
+      org.brkthroo.image.created=$BUILD_DATE \
+      org.brkthroo.image.title="nirajrules/meetupapiservice" \
+      org.brkthroo.image.description="The repository contains meetupapi extensions " \
+      org.brkthroo.image.source=$BUILD_VERSION
+
 WORKDIR /app
 COPY --from=build-env /app/out .
 ENTRYPOINT ["dotnet", "MeetupAPIService.dll"]
