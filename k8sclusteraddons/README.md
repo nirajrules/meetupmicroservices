@@ -52,5 +52,5 @@ A quick way to create scraping endpoint in K8s is to create a K8s service with a
 
 For example you can deploy the helm chart for this prometheus exporter (make sure you provide dtr_ca.pem, DTR URL, DTR Username & Password in values.yml) - <https://github.com/stevejr/dtr-prometheus-exporter>. Deploying the helm chart should pop up the metrics endpoint in targets as shown below.
 
-![image info](./images/PromTargets.png)
+![image info](../images/PromTargets.png)
 
